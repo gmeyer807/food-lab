@@ -14,7 +14,16 @@ const DATA_FILE = 'data.json';
 
 // Initialize data file if it doesn't exist
 if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ users: {} }));
+    const initialData = {
+        users: {
+            gunter: {
+                name: "Gunter",
+                isAdmin: true,
+                recipes: []
+            }
+        }
+    };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2));
 }
 
 // Helper functions
@@ -179,8 +188,88 @@ const indexHTML = `<!DOCTYPE html>
         .user-card:hover {
             transform: translateY(-2px);
         }
-        .user-card:active {
+        .admin-card {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .admin-card:hover {
+            transform: translateY(-2px);
+        }
+        .admin-card:active {
             transform: scale(0.98);
+        }
+        .admin-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ffc107;
+            color: #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .password-form {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .password-form h3 {
+            margin: 0 0 15px 0;
+            color: #856404;
+        }
+        .password-form input {
+            width: 150px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            margin: 0 10px;
+        }
+        .password-form input:focus {
+            outline: none;
+            border-color: #dc3545;
+        }
+        .password-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        .password-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .login-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .login-btn:active {
+            background-color: #c82333;
         }
         .add-user-btn {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -427,6 +516,16 @@ const indexHTML = `<!DOCTYPE html>
                     <button class="cancel-btn" onclick="cancelAddUser()">Cancel</button>
                 </div>
             </div>
+            
+            <div id="passwordForm" class="password-form hidden">
+                <h3>🔐 Administrator Login</h3>
+                <p>Enter password for Gunter:</p>
+                <input type="password" id="adminPassword" placeholder="Password" maxlength="10">
+                <div class="password-buttons">
+                    <button class="login-btn" onclick="checkAdminPassword()">Login</button>
+                    <button class="cancel-btn" onclick="cancelAdminLogin()">Cancel</button>
+                </div>
+            </div>
         </div>
 
         <!-- Main App -->
@@ -483,9 +582,18 @@ const indexHTML = `<!DOCTYPE html>
             // Add existing users
             users.forEach(user => {
                 const userCard = document.createElement('button');
-                userCard.className = 'user-card';
-                userCard.textContent = user.name;
-                userCard.onclick = () => selectUser(user.id, user.name);
+                
+                // Check if this is the admin user
+                if (user.id === 'gunter') {
+                    userCard.className = 'admin-card';
+                    userCard.innerHTML = user.name + '<span class="admin-badge">⚡</span>';
+                    userCard.onclick = () => showAdminLogin();
+                } else {
+                    userCard.className = 'user-card';
+                    userCard.textContent = user.name;
+                    userCard.onclick = () => selectUser(user.id, user.name);
+                }
+                
                 userGrid.appendChild(userCard);
             });
             
@@ -495,6 +603,30 @@ const indexHTML = `<!DOCTYPE html>
             addUserBtn.innerHTML = '+ Add User';
             addUserBtn.onclick = showAddUserForm;
             userGrid.appendChild(addUserBtn);
+        }
+
+        function showAdminLogin() {
+            document.getElementById('passwordForm').classList.remove('hidden');
+            document.getElementById('adminPassword').focus();
+        }
+
+        function cancelAdminLogin() {
+            document.getElementById('passwordForm').classList.add('hidden');
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function checkAdminPassword() {
+            const passwordInput = document.getElementById('adminPassword');
+            const password = passwordInput.value;
+            
+            if (password === '0000') {
+                cancelAdminLogin();
+                selectUser('gunter', 'Gunter');
+            } else {
+                alert('Incorrect password!');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
         }
 
         function showAddUserForm() {
@@ -647,13 +779,16 @@ const indexHTML = `<!DOCTYPE html>
         }
 
         // Allow Enter key functionality
-        document.getElementById('newUserName').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') saveNewUser();
-        });
-        
         document.addEventListener('keypress', function(e) {
+            const newUserInput = document.getElementById('newUserName');
+            const passwordInput = document.getElementById('adminPassword');
             const recipeInput = document.getElementById('recipeInput');
-            if (e.target === recipeInput && e.key === 'Enter') {
+            
+            if (e.target === newUserInput && e.key === 'Enter') {
+                saveNewUser();
+            } else if (e.target === passwordInput && e.key === 'Enter') {
+                checkAdminPassword();
+            } else if (e.target === recipeInput && e.key === 'Enter') {
                 addRecipe();
             }
         });
@@ -664,8 +799,7 @@ const indexHTML = `<!DOCTYPE html>
 fs.writeFileSync(path.join(publicDir, 'index.html'), indexHTML);
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('Menu Generator Server running on http://localhost:' + PORT);
-    console.log('Access from other devices at http://[YOUR_SERVER_IP]:' + PORT);
+    // Server started successfully
 });
 
 module.exports = app;
