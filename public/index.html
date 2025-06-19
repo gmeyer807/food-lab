@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Menu Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        .user-section {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .user-section input {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-right: 10px;
+            width: 200px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #555;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+            font-size: 18px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        button {
+            padding: 15px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 50px;
+        }
+        button:active {
+            background-color: #0056b3;
+            transform: scale(0.98);
+        }
+        .generate-btn {
+            background-color: #28a745;
+            font-size: 18px;
+            padding: 20px 40px;
+            display: block;
+            margin: 25px auto;
+            width: 100%;
+            max-width: 300px;
+            min-height: 60px;
+        }
+        .generate-btn:active {
+            background-color: #1e7e34;
+        }
+        .recipe-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .recipe-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 10px 15px;
+            font-size: 14px;
+            min-height: 40px;
+        }
+        .delete-btn:active {
+            background-color: #c82333;
+        }
+        .menu-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .day-menu {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .day-menu h3 {
+            margin: 0 0 12px 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        .meal {
+            background-color: white;
+            padding: 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 22px;
+            }
+            .input-group {
+                flex-direction: column;
+                gap: 12px;
+            }
+            button {
+                width: 100%;
+            }
+            .user-section input {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Weekly Menu Generator</h1>
+        
+        <div class="user-section">
+            <input type="text" id="userIdInput" placeholder="Enter your name..." maxlength="20">
+            <button onclick="setUser()">Set User</button>
+            <div id="currentUser" class="hidden">
+                <p>Welcome, <strong id="userName"></strong>!</p>
+                <button onclick="changeUser()">Change User</button>
+            </div>
+        </div>
+
+        <div id="mainApp" class="hidden">
+            <div class="section">
+                <h2>Add Recipes</h2>
+                <div class="input-group">
+                    <input type="text" id="recipeInput" placeholder="Enter recipe name..." maxlength="50">
+                    <button onclick="addRecipe()">Add Recipe</button>
+                </div>
+                <div id="recipeList" class="recipe-list"></div>
+            </div>
+
+            <div class="section">
+                <button class="generate-btn" onclick="generateMenu()">🎲 Generate Weekly Menu</button>
+            </div>
+
+            <div class="section">
+                <h2>This Week's Menu</h2>
+                <div id="weeklyMenu" class="menu-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+
+        async function setUser() {
+            const input = document.getElementById('userIdInput');
+            const userId = input.value.trim();
+            
+            if (userId) {
+                currentUserId = userId;
+                document.getElementById('userName').textContent = userId;
+                document.querySelector('.user-section input').style.display = 'none';
+                document.querySelector('.user-section button').style.display = 'none';
+                document.getElementById('currentUser').classList.remove('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                await loadRecipes();
+            }
+        }
+
+        function changeUser() {
+            currentUserId = null;
+            document.querySelector('.user-section input').style.display = 'inline-block';
+            document.querySelector('.user-section button').style.display = 'inline-block';
+            document.getElementById('currentUser').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('userIdInput').value = '';
+        }
+
+        async function loadRecipes() {
+            try {
+                const response = await fetch('/api/users/' + currentUserId + '/recipes');
+                const recipes = await response.json();
+                displayRecipes(recipes);
+            } catch (error) {
+                console.error('Error loading recipes:', error);
+            }
+        }
+
+        async function addRecipe() {
+            if (!currentUserId) return;
+            
+            const input = document.getElementById('recipeInput');
+            const recipeName = input.value.trim();
+            
+            if (recipeName) {
+                try {
+                    await fetch('/api/users/' + currentUserId + '/recipes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ recipe: recipeName }),
+                    });
+                    
+                    input.value = '';
+                    await loadRecipes();
+                } catch (error) {
+                    console.error('Error adding recipe:', error);
+                }
+            }
+        }
+
+        async function deleteRecipe(recipeName) {
+            if (!currentUserId) return;
+            
+            try {
+                await fetch('/api/users/' + currentUserId + '/recipes/' + encodeURIComponent(recipeName), {
+                    method: 'DELETE',
+                });
+                
+                await loadRecipes();
+            } catch (error) {
+                console.error('Error deleting recipe:', error);
+            }
+        }
+
+        function displayRecipes(recipes) {
+            const recipeList = document.getElementById('recipeList');
+            recipeList.innerHTML = '';
+            
+            recipes.forEach(recipe => {
+                const recipeDiv = document.createElement('div');
+                recipeDiv.className = 'recipe-item';
+                recipeDiv.innerHTML = '<span>' + recipe + '</span><button class="delete-btn" onclick="deleteRecipe(\'' + recipe + '\')">Delete</button>';
+                recipeList.appendChild(recipeDiv);
+            });
+        }
+
+        async function generateMenu() {
+            if (!currentUserId) return;
+            
+            try {
+                const response = await fetch('/api/users/' + currentUserId + '/menu');
+                const menu = await response.json();
+                
+                if (menu.error) {
+                    alert('Please add some recipes first!');
+                    return;
+                }
+                
+                const menuContainer = document.getElementById('weeklyMenu');
+                menuContainer.innerHTML = '';
+
+                Object.entries(menu).forEach(([day, recipe]) => {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'day-menu';
+                    dayDiv.innerHTML = '<h3>' + day + '</h3><div class="meal">' + recipe + '</div>';
+                    menuContainer.appendChild(dayDiv);
+                });
+            } catch (error) {
+                console.error('Error generating menu:', error);
+            }
+        }
+
+        // Allow Enter key functionality
+        document.getElementById('userIdInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') setUser();
+        });
+        
+        document.getElementById('recipeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addRecipe();
+        });
+    </script>
+</body>
+</html>
